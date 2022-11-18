@@ -235,3 +235,120 @@ git clone https://github.com/protoloft/klipper_z_calibration.git
 
 The install script assumes that Klipper is also installed in your home directory under
 "klipper": `${HOME}/klipper`.
+
+## Setup WLED for Moonraker
+
+### [wled]
+
+Enables control of a WLED strip. Moonraker always supports 4 color channel strips - the color order is defined within WLED itself.
+
+#### moonraker.conf
+
+```cfg
+[wled strip_name]
+type:
+#   The type of device. Can be either http, or serial.
+#   This parameter must be provided.
+address:
+#   The address should be a valid ip or hostname for the wled webserver.
+#   Required when type: http
+serial:
+#   The serial port to be used to communicate directly to wled. Requires wled
+#   0.13 Build 2108250 or later.
+#   Required when type: serial
+initial_preset:
+#   Initial preset ID (favourite) to use. If not specified initial_colors
+#   will be used instead.
+initial_red:
+initial_green:
+initial_blue:
+initial_white:
+#   Initial colors to use for all neopixels should initial_preset not be set,
+#   initial_white will only be used for RGBW wled strips (defaults: 0.5)
+chain_count:
+#   Number of addressable neopixels for use (default: 1)
+color_order:
+#   *** DEPRECATED - Color order is defined per GPIO in WLED directly ***
+#   Color order for WLED strip, RGB or RGBW (default: RGB)
+```
+
+Below are some examples:
+
+#### moonraker.conf
+
+```cfg
+[wled case]
+type: http
+address: led1.lan
+initial_preset: 45
+chain_count: 76
+
+[wled lounge]
+type: http
+address: 192.168.0.45
+initial_red: 0.5
+initial_green: 0.4
+initial_blue: 0.3
+chain_count: 42
+
+[wled stealthburner]
+type: serial
+serial: /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+initial_white: 0.6
+chain_count: 3
+It is possible to control wled from the klippy host, this can be done using one or more macros, such as:
+```
+
+#### printer.cfg
+
+```cfg
+[gcode_macro WLED_ON]
+description: Turn WLED strip on using optional preset and resets led colors
+gcode:
+  {% set strip = params.STRIP|string %}
+  {% set preset = params.PRESET|default(-1)|int %}
+
+  {action_call_remote_method("set_wled_state",
+                             strip=strip,
+                             state=True,
+                             preset=preset)}
+
+[gcode_macro WLED_CONTROL]
+description: Control effect values and brightness
+gcode:
+  {% set strip = params.STRIP|default('lights')|string %}
+  {% set brightness = params.BRIGHTNESS|default(-1)|int %}
+  {% set intensity = params.INTENSITY|default(-1)|int %}
+  {% set speed = params.SPEED|default(-1)|int %}
+
+  {action_call_remote_method("set_wled_state",
+                             strip=strip,
+                             brightness=brightness,
+                             intensity=intensity,
+                             speed=speed)}
+
+[gcode_macro WLED_OFF]
+description: Turn WLED strip off
+gcode:
+  {% set strip = params.STRIP|string %}
+
+  {action_call_remote_method("set_wled_state",
+                             strip=strip,
+                             state=False)}
+
+[gcode_macro SET_WLED]
+description: SET_LED like functionality for WLED, applies to all active segments
+gcode:
+    {% set strip = params.STRIP|string %}
+    {% set red = params.RED|default(0)|float %}
+    {% set green = params.GREEN|default(0)|float %}
+    {% set blue = params.BLUE|default(0)|float %}
+    {% set white = params.WHITE|default(0)|float %}
+    {% set index = params.INDEX|default(-1)|int %}
+    {% set transmit = params.TRANSMIT|default(1)|int %}
+
+    {action_call_remote_method("set_wled",
+                               strip=strip,
+                               red=red, green=green, blue=blue, white=white,
+                               index=index, transmit=transmit)}
+```
