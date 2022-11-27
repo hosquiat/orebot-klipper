@@ -14,9 +14,6 @@ After installing Klipper, install the script. run:
 cd ~/klipper/
 sudo cp "./scripts/klipper-mcu-start.sh" /etc/init.d/klipper_mcu
 sudo update-rc.d klipper_mcu defaults
-cd ~/klipper/
-sudo cp "./scripts/klipper-mcu-start.sh" /etc/init.d/klipper_mcu
-sudo update-rc.d klipper_mcu defaults
 ```
 
 ### BUILDING THE MICRO-CONTROLLER CODE
