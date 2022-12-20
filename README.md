@@ -438,3 +438,45 @@ gcode:
   SAVE_CONFIG
   {% endif %}
 ```
+
+## Dimensional Accuracy
+Found a good video by vector3d detailing how to fix print accuracy https://www.youtube.com/watch?v=dbWAhb40kG4
+He outlines using a calibration califlower to and measuring between predefined spaces on the print.
+I created a macro to load the skew correction at start of print, but must first be loaded and saved to variables file
+
+As of 12/20/22, the config is as follows:
+
+start gcode:
+```sh
+...
+LOAD_SKEW_PROFILE
+...
+```
+
+end gcode:
+```sh
+...
+SET_SKEW CLEAR=1
+...
+```
+macro:
+```sh
+[gcode_macro LOAD_SKEW_PROFILE]
+gcode:
+  {% set svv = printer.save_variables.variables %}
+  {% if "current_skew_profile" not in svv %} ; first run
+    M117 !! Skew Profile Not Found !!
+  {% else %} ; load current skew profile
+    {% set skew_profile = svv.current_skew_profile %}
+    M117 Loaded Skew Profile: {skew_profile}
+    SKEW_PROFILE LOAD={skew_profile}
+  {% endif %}
+```
+
+saved profile:
+#*# [skew_correction OREBOT_SKEW_122022]
+#*# xy_skew = -0.0014016930581922402
+#*# xz_skew = 0.0
+#*# yz_skew = 0.0
+
+
