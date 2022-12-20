@@ -474,9 +474,9 @@ gcode:
 ```
 
 saved profile:
+```sh
 #*# [skew_correction OREBOT_SKEW_122022]
 #*# xy_skew = -0.0014016930581922402
 #*# xz_skew = 0.0
 #*# yz_skew = 0.0
-
-
+```
