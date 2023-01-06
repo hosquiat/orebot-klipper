@@ -480,3 +480,80 @@ saved profile:
 #*# xz_skew = 0.0
 #*# yz_skew = 0.0
 ```
+
+## Saving and adjusting per-build-surface Z offsets
+
+setup
+printer.cfg
+[save_variables]
+filename: ~/klipper_config/saved_vars.cfg
+saved_vars.cfg
+Populate bed_surfaces with a list of your print surfaces. These need to be variables, not friendly names; if you’ve got multiple smooth surfaces, name them something like smooth_01 and smooth_02. Note the format: the value needs to be an eval-able Python string that returns a list of strings.
+
+Set the selected_bed_surface key to one of the entries in the bed_surfaces list, and note the quotes around the value.
+
+For each item in the bed_surfaces list, create a saved variable prefixed with bed_surface_offsets.: these will store the per-surface offset values.
+
+Below is a slightly-formatted version of my current vars file:
+
+[Variables]
+bed_surfaces = ['smooth', 'textured']
+
+selected_bed_surface = 'smooth'
+
+bed_surface_offsets.smooth = -0.185
+bed_surface_offsets.textured = -0.17
+menus
+;; choose a bed surface from a pre-configured list
+[menu __main __setup __bed_surface]
+type: input
+name: Bed: { printer.save_variables.variables.bed_surfaces[menu.input | int] }
+input: { printer.save_variables.variables.bed_surfaces.index(printer.save_variables.variables.selected_bed_surface) | float }
+input_min: 0.0
+input_max: { ((printer.save_variables.variables.bed_surfaces | length) - 1) | float }
+input_step: 1.0
+gcode:
+    SAVE_VARIABLE VARIABLE=selected_bed_surface VALUE="'{ printer.save_variables.variables.bed_surfaces[menu.input | int] }'"
+
+;; tunes the Z offset from the setup menu, saves the offset
+;; can be performed while not actively printing
+[menu __main __setup __offsetz]
+type: input
+name: Offset Z:{ '%05.3f' % menu.input }
+input: { printer.save_variables.variables["bed_surface_offsets." + printer.save_variables.variables.selected_bed_surface] | float }
+input_min: -5
+input_max: 5
+input_step: 0.005
+realtime: True
+gcode:
+    RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (printer.save_variables.variables.selected_bed_surface, menu.input) }"
+    SET_GCODE_OFFSET Z={ '%.3f' % menu.input } MOVE={ 1 if printer.toolhead.homed_axes == 'XYZ' else 0 }
+    SAVE_VARIABLE VARIABLE=bed_surface_offsets.{ printer.save_variables.variables.selected_bed_surface } VALUE={ '%.3f' % menu.input }
+
+;; tunes the Z offset from the tune menu, saves the offset
+[menu __main __tune __offsetz]
+type: input
+name: Offset Z:{ '%05.3f' % menu.input }
+input: { printer.gcode_move.homing_origin.z }
+input_min: -5
+input_max: 5
+input_step: 0.005
+realtime: True
+gcode:
+    RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (printer.save_variables.variables.selected_bed_surface, menu.input) }"
+    SET_GCODE_OFFSET Z={ '%.3f' % menu.input } MOVE=1
+    SAVE_VARIABLE VARIABLE=bed_surface_offsets.{ printer.save_variables.variables.selected_bed_surface } VALUE={ '%.3f' % menu.input }
+PRINT_START gcode
+gcode:
+    {% set svv = printer.save_variables.variables %}
+
+    …
+
+    ;; apply Z offset for configured bed surface
+    RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (svv.selected_bed_surface, svv['bed_surface_offsets.' + svv.selected_bed_surface]) }"
+    SET_GCODE_OFFSET MOVE=1 Z={ '%.3f' % (svv["bed_surface_offsets." + svv.selected_bed_surface] | float) }
+
+    …
+
+
+
