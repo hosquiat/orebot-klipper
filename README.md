@@ -440,6 +440,7 @@ gcode:
 ```
 
 ## Dimensional Accuracy
+
 Found a good video by vector3d detailing how to fix print accuracy https://www.youtube.com/watch?v=dbWAhb40kG4
 He outlines using a calibration califlower to and measuring between predefined spaces on the print.
 I created a macro to load the skew correction at start of print, but must first be loaded and saved to variables file
@@ -447,6 +448,7 @@ I created a macro to load the skew correction at start of print, but must first 
 As of 12/20/22, the config is as follows:
 
 start gcode:
+
 ```sh
 ...
 LOAD_SKEW_PROFILE
@@ -454,12 +456,15 @@ LOAD_SKEW_PROFILE
 ```
 
 end gcode:
+
 ```sh
 ...
 SET_SKEW CLEAR=1
 ...
 ```
+
 macro:
+
 ```sh
 [gcode_macro LOAD_SKEW_PROFILE]
 gcode:
@@ -474,6 +479,7 @@ gcode:
 ```
 
 saved profile:
+
 ```sh
 #*# [skew_correction OREBOT_SKEW_122022]
 #*# xy_skew = -0.0014016930581922402
@@ -513,7 +519,7 @@ input_min: 0.0
 input_max: { ((printer.save_variables.variables.bed_surfaces | length) - 1) | float }
 input_step: 1.0
 gcode:
-    SAVE_VARIABLE VARIABLE=selected_bed_surface VALUE="'{ printer.save_variables.variables.bed_surfaces[menu.input | int] }'"
+SAVE_VARIABLE VARIABLE=selected_bed_surface VALUE="'{ printer.save_variables.variables.bed_surfaces[menu.input | int] }'"
 
 ;; tunes the Z offset from the setup menu, saves the offset
 ;; can be performed while not actively printing
@@ -526,9 +532,9 @@ input_max: 5
 input_step: 0.005
 realtime: True
 gcode:
-    RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (printer.save_variables.variables.selected_bed_surface, menu.input) }"
-    SET_GCODE_OFFSET Z={ '%.3f' % menu.input } MOVE={ 1 if printer.toolhead.homed_axes == 'XYZ' else 0 }
-    SAVE_VARIABLE VARIABLE=bed_surface_offsets.{ printer.save_variables.variables.selected_bed_surface } VALUE={ '%.3f' % menu.input }
+RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (printer.save_variables.variables.selected_bed_surface, menu.input) }"
+SET_GCODE_OFFSET Z={ '%.3f' % menu.input } MOVE={ 1 if printer.toolhead.homed_axes == 'XYZ' else 0 }
+SAVE_VARIABLE VARIABLE=bed_surface_offsets.{ printer.save_variables.variables.selected_bed_surface } VALUE={ '%.3f' % menu.input }
 
 ;; tunes the Z offset from the tune menu, saves the offset
 [menu __main __tune __offsetz]
@@ -540,12 +546,12 @@ input_max: 5
 input_step: 0.005
 realtime: True
 gcode:
-    RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (printer.save_variables.variables.selected_bed_surface, menu.input) }"
-    SET_GCODE_OFFSET Z={ '%.3f' % menu.input } MOVE=1
-    SAVE_VARIABLE VARIABLE=bed_surface_offsets.{ printer.save_variables.variables.selected_bed_surface } VALUE={ '%.3f' % menu.input }
+RESPOND TYPE=command MSG="{ 'bed surface: %s, offset: %r' % (printer.save_variables.variables.selected_bed_surface, menu.input) }"
+SET_GCODE_OFFSET Z={ '%.3f' % menu.input } MOVE=1
+SAVE_VARIABLE VARIABLE=bed_surface_offsets.{ printer.save_variables.variables.selected_bed_surface } VALUE={ '%.3f' % menu.input }
 PRINT_START gcode
 gcode:
-    {% set svv = printer.save_variables.variables %}
+{% set svv = printer.save_variables.variables %}
 
     …
 
@@ -555,5 +561,13 @@ gcode:
 
     …
 
+# SuperSlicer
 
+START
 
+M141 S[chamber_temperature]
+M140 S[first_layer_bed_temperature]
+M104 S[first_layer_temperature]
+M190 S0
+M109 S0
+PRINT_START EXTRUDER={first_layer_temperature[initial_tool]} BED=[first_layer_bed_temperature] MESH_MIN={first_layer_print_min[0]},{first_layer_print_min[1]} MESH_MAX={first_layer_print_max[0]},{first_layer_print_max[1]} CHAMBER=[chamber_temperature] LAYERS={total_layer_count} NOZZLE_SIZE={nozzle_diameter[0]}
